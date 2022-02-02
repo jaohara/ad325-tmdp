@@ -1,0 +1,16 @@
+{
+  "name": "tm_data_parser",
+  "version": "1.0.0",
+  "description": "A tool to read in fake social media data from JSON and insert it into a MySQL database.",
+  "type": "module",
+  "main": "tmdp.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "John O'Hara",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^5.0.0",
+    "mysql2": "^2.3.3"
+  }
+}

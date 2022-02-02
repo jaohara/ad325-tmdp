@@ -1,0 +1,130 @@
+{
+  "posts": [
+    {
+      "id": 1,
+      "social_id": 1,
+      "content": "This is content for post 1.",
+      "date": "01/02/2022",
+      "categories": [
+        {
+          "id": 1,
+          "name": "Politics",
+          "detail_description": "Progressive"
+        },
+        {
+          "id": 2,
+          "name": "Sports"
+        },
+        {
+          "id": 3,
+          "name": "Food"
+        }
+      ],
+      "comments": [ 
+        {
+          "id": 1,
+          "social_id": 2,
+          "date": "01/02/2022",
+          "content": "This is a comment on post 1."
+        }
+      ],
+      "likes": [
+        {
+          "id": 1,
+          "date": "01/02/2022",
+          "social_id": 3
+        }
+      ],
+      "tags": [
+        {
+          "id": 1,
+          "tagged_social_id": 3
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "social_id": 3,
+      "content": "This is content for Post 2. This post wasn't very popular.",
+      "date": "01/04/2022",
+      "categories": [
+        {
+          "id": 1,
+          "name": "Politics",
+          "detail_description": "Conservative"
+        },
+        {
+          "id": 4,
+          "name": "Cars",
+          "detail_description": "Rolling coal and other horrible environmental things to do with cars." 
+        }
+      ],
+      "comments": [ ],
+      "likes": [
+        {
+          "id": 2,
+          "date": "01/04/2022",
+          "social_id": 3
+        }
+      ],
+      "tags": [ ]
+    },
+    {
+      "id": 3,
+      "social_id": 2,
+      "content": "Everyone forgot about that band Royal Headache, and that bums me out.",
+      "date": "01/11/2022",
+      "categories": [
+        {
+          "id": 5,
+          "name": "Entertainment"
+        },
+        {
+          "id": 6,
+          "name": "Music",
+          "detail_description": "Punk Rock"
+        }
+      ],
+      "comments": [ 
+        {
+          "id": 2,
+          "social_id": 1,
+          "date": "01/11/2022",
+          "content": "Their self-titled album was the best."
+        },
+        {
+          "id": 3,
+          "social_id": 2,
+          "date": "01/11/2022",
+          "content": "I disagree - their second album was better. The production and songwriting improved without it sounding cheesy.",
+          "tags": [
+            {
+              "id": 1,
+              "tagged_social_id": 1
+            }
+          ],
+          "likes": [
+            {
+              "id": 1,
+              "social_id": 3,
+              "date": "01/11/2022"
+            }
+          ]
+        }
+      ],
+      "likes": [
+        {
+          "id": 3,
+          "date": "01/11/2022",
+          "social_id": 3
+        }
+      ],
+      "tags": [
+        {
+          "id": 2,
+          "tagged_social_id": 1
+        }
+      ]
+    }
+  ]
+}
