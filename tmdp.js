@@ -28,19 +28,11 @@ function main() {
     const postData = JSON.parse(fs.readFileSync(postDataPath));
     logSuccess(`'${postDataPath}' read successfully.`);
 
-    // parse the data 
+
     parsePosts(postData);
 
-    console.log("\n");
-
-    console.log(boldBlue("All Generated Queries: \n"));
-
-    let queryNum = 1;
-
-    queries.forEach(query => {
-      console.log(`${boldBlue(`${queryNum}: `)}${query}\n`);
-      queryNum++;
-    });
+    // make the loop to record input here - logAllQueries should only be called by request.
+    logAllQueries();
   }
   else {
     logFailure(`ERROR reading '${postDataPath}' - does the file exist?`);
@@ -65,9 +57,7 @@ const parsePosts = (postData) => {
   }
 };
 
-// TODO: The "VALUES" portion of the buildQuery functions need to take into account the fact
-//  that certain fields might be null.
-
+// functions to add built queries to the queries array
 const addPostQuery = (post) => queries.push(buildPostQuery(post));
 const addPostCategoryQuery = (category, post) => queries.push(buildPostCategoryQuery(category, post));
 const addPostCommentQuery = (comment, post) => queries.push(buildPostCommentQuery(comment, post));
@@ -77,46 +67,125 @@ const addCategoryDetailQuery = (id, name, detail) => queries.push(buildCategoryD
 const addCommentLikeQuery = (like, comment) => queries.push(buildCommentLikeQuery(like, comment));
 const addCommentTagQuery = (tag, comment) => queries.push(buildCommentTagQuery(tag, comment));
 
-const buildPostQuery = (post) => 
-  `INSERT INTO Post (id, social_id, content, date) 
-    VALUES (${parseInt(post.id)}, ${parseInt(post.social_id)}, '${post.content}', '${post.date}');`;
+// functions to build insert queries for specific database tables
+const buildPostQuery = (post) =>
+  buildInsertQuery("Post", stripUndefinedProperties({
+    id: parseInt(post.id),
+    social_id: parseInt(post.social_id),
+    content: post.content,
+    date: post.date,
+  }));
 
 const buildPostCategoryQuery = (category, post) => {
+  // yeah, this is hacky garbage.
   if (category.detail_description !== undefined) {
     addCategoryDetailQuery(ids.category_detail_id, category.name, category.detail_description);
     ids.category_detail_id++;
   }
 
-  return `INSERT INTO PostCategory (id, category_name, post_id) 
-    VALUES (${parseInt(category.id)}, '${category.name}', ${parseInt(post.id)})`;
+  let cleanedPostCategory = stripUndefinedProperties({
+    id: parseInt(category.id),
+    category_name: category.name,
+    post_id: post.id,
+  });
+
+  return buildInsertQuery("PostCategory", cleanedPostCategory);
 };
 
-const buildCategoryDetailQuery = (id, name, detail) => 
-  `INSERT INTO CategoryDetail (id, category_name, category_detail_description) 
-    VALUES (${parseInt(id)}, '${name}', '${detail}')`;
+const buildCategoryDetailQuery = (id, name, detail) =>
+  buildInsertQuery("CategoryDetail", stripUndefinedProperties({
+    id: parseInt(id),
+    category_name: name,
+    category_detail_description: detail,
+  }));
 
 const buildPostCommentQuery = (comment, post) => {
-  comment.tags !== undefined && comment.tags.forEach(tag => addCommentTagQuery(tag, comment));
+  comment.tags  !== undefined && comment.tags.forEach(tag => addCommentTagQuery(tag, comment));
+
   comment.likes !== undefined && comment.likes.forEach(like => addCommentLikeQuery(like, comment));
 
-  return `INSERT INTO PostComment (id, content, date, post_id, social_id) VALUES
-    (${parseInt(comment.id)}, '${comment.content}', '${comment.date}', ${parseInt(post.id)}, ${parseInt(comment.social_id)})`;
+  let cleanedComment = stripUndefinedProperties({
+    id: parseInt(comment.id),
+    content: comment.content,
+    date: comment.date,
+    post_id: parseInt(post.id),
+    social_id: parseInt(comment.social_id),
+  });
+
+  return buildInsertQuery("PostComment", cleanedComment);
+  // return `INSERT INTO PostComment (id, content, date, post_id, social_id) VALUES
+  //   (${parseInt(comment.id)}, '${comment.content}', '${comment.date}', ${parseInt(post.id)}, ${parseInt(comment.social_id)})`;
 };
 
 const buildPostLikeQuery = (like, post) => 
-  `INSERT INTO PostLike (id, date, post_id, social_id)
-    VALUES (${parseInt(like.id)}, '${like.date}', ${parseInt(post.id)}, ${parseInt(like.social_id)});`;
+  buildInsertQuery("PostLike", stripUndefinedProperties({
+    id: parseInt(like.id),
+    date: like.date,
+    post_id: parseInt(post.id),
+    social_id: parseInt(like.social_id),
+  }));
+  // `INSERT INTO PostLike (id, date, post_id, social_id)
+  //   VALUES (${parseInt(like.id)}, '${like.date}', ${parseInt(post.id)}, ${parseInt(like.social_id)});`;
 
 const buildPostTagQuery = (tag, post) => 
-  `INSERT INTO PostTag (id, post_id, tagger_social_id, tagged_social_id)
-    VALUES (${parseInt(tag.id)}, ${parseInt(post.id)}, ${parseInt(post.social_id)}, ${parseInt(tag.tagged_social_id)});`;
+  buildInsertQuery("PostTag", stripUndefinedProperties({
+    id: parseInt(tag.id),
+    post_id: parseInt(post.id),
+    tagger_social_id: parseInt(post.social_id),
+    tagged_social_id: parseInt(tag.tagged_social_id),
+  }));
+  // `INSERT INTO PostTag (id, post_id, tagger_social_id, tagged_social_id)
+  //   VALUES (${parseInt(tag.id)}, ${parseInt(post.id)}, ${parseInt(post.social_id)}, ${parseInt(tag.tagged_social_id)});`;
 
 const buildCommentLikeQuery = (like, comment) => 
-  `INSERT INTO PostCommentLike (id, comment_id, social_id, date)
-    VALUES (${parseInt(like.id)}, ${parseInt(comment.id)}, ${parseInt(like.social_id)}, '${like.date}');`;
+  buildInsertQuery("PostCommentLike", stripUndefinedProperties({
+    id: parseInt(like.id),
+    comment_id: parseInt(comment.id),
+    social_id: parseInt(like.social_id),
+    date: like.date,
+  }));
+  // `INSERT INTO PostCommentLike (id, comment_id, social_id, date)
+  //   VALUES (${parseInt(like.id)}, ${parseInt(comment.id)}, ${parseInt(like.social_id)}, '${like.date}');`;
 
-const buildCommentTagQuery = (tag, comment) => 
-  `INSERT INTO PostCommentTag (id, comment_id, tagger_social_id, tagged_social_id) 
-    VALUES (${parseInt(tag.id)}, ${parseInt(comment.id)}, ${parseInt(comment.social_id)}, ${parseInt(tag.tagged_social_id)});`;
+const buildCommentTagQuery = (tag, comment) =>
+  buildInsertQuery("PostCommentTag", stripUndefinedProperties({
+    id: parseInt(tag.id),
+    comment_id: parseInt(comment.id),
+    tagger_social_id: parseInt(comment.social_id),
+    tagged_social_id: parseInt(tag.tagged_social_id),
+  }));
+  // `INSERT INTO PostCommentTag (id, comment_id, tagger_social_id, tagged_social_id) 
+  //   VALUES (${parseInt(tag.id)}, ${parseInt(comment.id)}, ${parseInt(comment.social_id)}, ${parseInt(tag.tagged_social_id)});`;
+
+const buildInsertQuery = (table, data) => 
+  `INSERT INTO ${table} (${getFields(data)})\n    VALUES(${getValues(data)});`;
+
+const logAllQueries = () => {
+  console.log(boldBlue("\nAll Generated Queries: \n"));
+
+  let queryNum = 1;
+
+  // TODO: This padding will break for three digit numbers... and four digit numbers...
+  //  I should probably think of a better way to do this.
+
+  queries.forEach(query => {
+    console.log(`${boldBlue(`${queryNum < 10 ? ` ${queryNum}` : queryNum}: `)}${query}\n`);
+    queryNum++;
+  });
+};
+
+
+// strips undefined properties from an object and returns the modified copy
+const stripUndefinedProperties = (object) => {
+  Object.keys(object).forEach(key => object[key] === undefined && delete object[key]);
+  return object;
+};
+
+// gets the field names as a comma-separated string for all of the data present in an object
+const getFields  = (object) => Object.keys(object).join(", ");
+
+// gets the values as a comma-separated string for all of the data present in an object
+const getValues  = (object) => 
+  Object.values(object).map(value => typeof value === "string" ? `'${value}'` : value).join(", ");
 
 main();
