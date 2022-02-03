@@ -113,8 +113,6 @@ const buildPostCommentQuery = (comment, post) => {
   });
 
   return buildInsertQuery("PostComment", cleanedComment);
-  // return `INSERT INTO PostComment (id, content, date, post_id, social_id) VALUES
-  //   (${parseInt(comment.id)}, '${comment.content}', '${comment.date}', ${parseInt(post.id)}, ${parseInt(comment.social_id)})`;
 };
 
 const buildPostLikeQuery = (like, post) => 
@@ -124,8 +122,6 @@ const buildPostLikeQuery = (like, post) =>
     post_id: parseInt(post.id),
     social_id: parseInt(like.social_id),
   }));
-  // `INSERT INTO PostLike (id, date, post_id, social_id)
-  //   VALUES (${parseInt(like.id)}, '${like.date}', ${parseInt(post.id)}, ${parseInt(like.social_id)});`;
 
 const buildPostTagQuery = (tag, post) => 
   buildInsertQuery("PostTag", stripUndefinedProperties({
@@ -134,8 +130,6 @@ const buildPostTagQuery = (tag, post) =>
     tagger_social_id: parseInt(post.social_id),
     tagged_social_id: parseInt(tag.tagged_social_id),
   }));
-  // `INSERT INTO PostTag (id, post_id, tagger_social_id, tagged_social_id)
-  //   VALUES (${parseInt(tag.id)}, ${parseInt(post.id)}, ${parseInt(post.social_id)}, ${parseInt(tag.tagged_social_id)});`;
 
 const buildCommentLikeQuery = (like, comment) => 
   buildInsertQuery("PostCommentLike", stripUndefinedProperties({
@@ -144,8 +138,6 @@ const buildCommentLikeQuery = (like, comment) =>
     social_id: parseInt(like.social_id),
     date: like.date,
   }));
-  // `INSERT INTO PostCommentLike (id, comment_id, social_id, date)
-  //   VALUES (${parseInt(like.id)}, ${parseInt(comment.id)}, ${parseInt(like.social_id)}, '${like.date}');`;
 
 const buildCommentTagQuery = (tag, comment) =>
   buildInsertQuery("PostCommentTag", stripUndefinedProperties({
@@ -154,8 +146,6 @@ const buildCommentTagQuery = (tag, comment) =>
     tagger_social_id: parseInt(comment.social_id),
     tagged_social_id: parseInt(tag.tagged_social_id),
   }));
-  // `INSERT INTO PostCommentTag (id, comment_id, tagger_social_id, tagged_social_id) 
-  //   VALUES (${parseInt(tag.id)}, ${parseInt(comment.id)}, ${parseInt(comment.social_id)}, ${parseInt(tag.tagged_social_id)});`;
 
 const buildInsertQuery = (table, data) => 
   `INSERT INTO ${table} (${getFields(data)})\n    VALUES(${getValues(data)});`;
@@ -173,7 +163,6 @@ const logAllQueries = () => {
     queryNum++;
   });
 };
-
 
 // strips undefined properties from an object and returns the modified copy
 const stripUndefinedProperties = (object) => {
