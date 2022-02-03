@@ -1,6 +1,6 @@
 # tmdp.js - Targeting Marketing Data Parser
 
-A real JavaScript program written to parse and insert JSON data from a fake social media platform into a fake targeted marketing databased.
+A real JavaScript program written to parse and insert JSON data from a fake social media platform into a fake targeted marketing database.
 
 ## How To Run
 
