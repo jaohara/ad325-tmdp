@@ -5,7 +5,7 @@
   "type": "module",
   "main": "tmdp.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node tmdp.js"
   },
   "author": "John O'Hara",
   "license": "ISC",

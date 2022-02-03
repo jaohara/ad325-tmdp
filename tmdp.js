@@ -5,30 +5,33 @@ import PromptSync from "prompt-sync";
 const prompt = PromptSync();
 
 const postDataPath = "./post_data.json";
+const dbName = "targeting_marketing";
 
 // This is hacky to account for problems in our schema. We'll want to return to this.
 const ids = {
   category_detail_id: 1,
 }
 
-const queries = [];
+// arrays to store parsed data
+const htmlLines = [];
+const queries   = [];
 
 // TODO: Use MySQL2 to connect to a local database to avoid the extra step of 
 //  needing to output to a SQL script.
 
 // main program logic
 function main() {
-  console.log(boldBlue("tmdp.js - Targeted Marketing Data Parser"));
-  console.log(chalk.bold(`Written by ${chalk.blue("John O'Hara")}\n\n`));
+  console.log(boldBlue("\ntmdp.js - Targeted Marketing Data Parser"));
+  console.log(chalk.bold(`Written by ${chalk.blue("John O'Hara")}\n`));
 
   console.log(`Reading '${postDataPath}'.....`)
 
   if (fs.existsSync(postDataPath)) {
     const postData = JSON.parse(fs.readFileSync(postDataPath));
     logSuccess(`'${postDataPath}' read successfully.`);
-
     parsePosts(postData);
-    mainLoop();
+    parsePostsAsHtml(postData);
+    runMainLoop();
   }
   else {
     logFailure(`ERROR reading '${postDataPath}' - does the file exist?`);
@@ -36,19 +39,19 @@ function main() {
 }
 
 // main prompt loop after data has been parsed
-const mainLoop = () => {
+const runMainLoop = () => {
   while(true) {
     let input = inputPrompt();
 
     if (Object.keys(promptOptions).includes(input)) {
       promptOptions[input]();
     }
-    else if (input === "x") {
+    else if (input === "x" || input === null) {
       console.log("\n 🦐 🦐 🦐 🦐 \n");
       return;
     }
     else {
-      logFailure(`Sorry, ${input} is not a valid option.`);
+      logFailure(`Sorry, '${input}' is not a valid option.`);
     }
   };
 };
@@ -61,29 +64,117 @@ const mainLoop = () => {
 // f - output formatted html
 // h - help
 // s - output sql script to file
-// ~v - view parsed queries 
+// v - view parsed queries 
 // x - exit
 
-const inputPrompt = () => prompt(printPromptString()).toLowerCase();
+const inputPrompt = () => {
+  let promptResponse = prompt(printPromptString());
+  return promptResponse !== null ? promptResponse.toLowerCase() : null; 
+}
 
 // prints the formatted prompt string
 const printPromptString = () => 
-  `${boldBlue("(V)")}iew Parsed Queries, Output ${boldBlue("(S)")}QL script, \
+  `${boldBlue("(V)")}iew Queries, Output ${boldBlue("(S)")}QL script, \
 Output ${boldBlue("(F)")}ormatted HTML, ${boldBlue("(H)")}elp, E${boldBlue("(x)")}it: `;
 
+const printFileOverwritePromptString = (fileName) => 
+  `File ${boldBlue(fileName)} exists, do you want to overwrite it? ${boldBlue('(y/n/q)')}: `;
+
+
+// TODO: A lot of code reuse between outputFormattedHtml and outputSqlScript - look into that.
 // Outputs parsed JSON to a formatted html document - corresponds to "f"
 const outputFormattedHtml = () => {
-  logFailure("Sorry, haven't made that yet!");
+  while (true) {
+    let fileName = prompt(`\nFilename? Hit enter for default ${boldBlue('(./data_feed.html)')}: `);
+    fileName = fileName === "" ? `./data_feed.html` : `./${fileName}`;
+
+    if (fileName === null) {
+      return;
+    }
+
+    let fileNameIsSafe  = !fs.existsSync(fileName);
+
+    if (!fileNameIsSafe) {
+      let overwritePromptResponse = prompt(printFileOverwritePromptString(fileName)).toLowerCase();
+      fileNameIsSafe = overwritePromptResponse === "y";
+
+      if (overwritePromptResponse === "q" || overwritePromptResponse === null) {
+        console.log("");
+        return;
+      }
+    }
+
+    if (fileNameIsSafe) {
+      // write the file
+      const htmlTemplate = fs.readFileSync("./templates/html_template.html", 
+        {encoding: 'utf8'}).split("{DATAPLACEHOLDER}");
+
+      const htmlData = [htmlTemplate[0], ...htmlLines, htmlTemplate[1]];
+
+      // might need to remove the "\n" chars that readFileSync appends
+
+      fs.writeFileSync(fileName, htmlData.join(" "));
+      logSuccess(`Successfully written formatted data to '${fileName}'!\n`);
+      return;
+    }
+  }
 }
 
 // Prints a more verbose help message - corresponds to "h"
 const printHelpMessage = () => {
-  logFailure("Sorry, haven't made that yet!");
+  console.log(`
+  ${boldBlue("tmdp.js")} - A (real) program to analyze (fake) data for insertion into a database.
+
+  This program reads in JSON-formatted data and builds SQL INSERT queries from what it parses.
+
+  ${boldBlue("Input Options:")}
+
+    ${boldBlue("v - V")}iew Queries
+      Outputs all of the generated queries to the screen.
+
+    ${boldBlue("s - ")}Output ${boldBlue("S")}QL script
+      Outputs the generated SQL queries to a file.
+
+    ${boldBlue("f - ")}Output ${boldBlue("f")}ormatted HTML
+      Outputs the data from the JSON file into a human-readable HTML file.
+
+    ${boldBlue("h - H")}elp
+      Outputs this help message.
+
+    ${boldBlue("x - ")}E${boldBlue("x")}it
+      Exits the program.\n`);
 }
 
 // Ouputs parsed created SQL statements to a script - corresponds to "s"
 const outputSqlScript = () => {
-  logFailure("Sorry, haven't made that yet!");
+  while (true) {
+    let fileName = prompt(`\nFilename? Hit enter for default ${boldBlue('(./insert_script.sql)')}: `);
+    fileName = fileName === "" ? `./insert_script.sql` : `./${fileName}`;
+
+    if (fileName === null) {
+      return;
+    }
+
+    let fileNameIsSafe  = !fs.existsSync(fileName);
+
+    if (!fileNameIsSafe) {
+      let overwritePromptResponse = prompt(printFileOverwritePromptString(fileName)).toLowerCase();
+      fileNameIsSafe = overwritePromptResponse === "y";
+
+      if (overwritePromptResponse === "q" || overwritePromptResponse === null) {
+        console.log("");
+        return;
+      }
+    }
+
+    if (fileNameIsSafe) {
+      // write the file
+      const outputQueries = [`USE ${dbName};`, ...queries, ""];
+      fs.writeFileSync(fileName, outputQueries.join("\n"));
+      logSuccess(`Successfully written SQL queries to '${fileName}'!\n`);
+      return;
+    }
+  }
 }
 
 // Outputs all parsed queries - corresponds to "v"
@@ -96,7 +187,7 @@ const logAllQueries = () => {
   //  I should probably think of a better way to do this.
 
   queries.forEach(query => {
-    console.log(`${boldBlue(`${queryNum < 10 ? ` ${queryNum}` : queryNum}: `)}${query}\n`);
+    console.log(`    ${boldBlue(`${queryNum < 10 ? ` ${queryNum}` : queryNum}: `)}${query}\n`);
     queryNum++;
   });
 };
@@ -107,6 +198,7 @@ const promptOptions = {
   s: outputSqlScript,
   v: logAllQueries, 
 };
+
 
 //  ----------------------
 //  JSON-Parsing Functions
@@ -128,6 +220,48 @@ const parsePosts = (postData) => {
     logSuccess("Post Data parsed successfully.\n");
   }
 };
+
+const parsePostsAsHtml = (postData) => {
+  if (postData.posts !== null) {
+    postData.posts.forEach(post => {
+      htmlLines.push(`
+        <div class="post-container">
+          <div class="post-info">
+            Post by <span class="detail">User ${post.social_id}</span> on <span class="detail">${post.date} 📣</span>
+            <div class="post-categories">  
+              ${post.categories.map(category => `<span class="category">${category.name}</span>`).join(" ")}
+            </div>
+          </div>
+
+          <div class="post-body">
+            ${post.content}
+          </div>
+
+          <div class="post-likes">
+            <span class="detail">${post.likes !== undefined || post.likes !== null ? post.likes.length : "0"} likes 👍</span>
+          </div>
+
+          <div class="post-comments">
+            <span class="detail">${post.comments !== undefined || post.comments !== null ? post.comments.length : "0"} comments 📨</span>
+            ${
+              (post.comments !== undefined || post.comments !== null) &&
+              post.comments.map(comment => 
+                `
+                <div class="comment">
+                  <div class="comment-info">
+                    Comment by <span class="detail">User ${comment.social_id}</span> on <span class="detail">${comment.date}</span>
+                  </div>
+
+                  <div class="comment-body">${comment.content}</div>
+                </div>
+                `).join(" ")
+            }
+          </div>
+        </div>
+      `);
+    })
+  }
+}
 
 
 //  ----------------------
@@ -151,12 +285,12 @@ const addCommentTagQuery = (tag, comment) => queries.push(buildCommentTagQuery(t
 
 // builds a query to insert data into the Post table
 const buildPostQuery = (post) =>
-buildInsertQuery("Post", stripUndefinedProperties({
-  id: parseInt(post.id),
-  social_id: parseInt(post.social_id),
-  content: post.content,
-  date: post.date,
-}));
+  buildInsertQuery("Post", stripUndefinedProperties({
+    id: parseInt(post.id),
+    social_id: parseInt(post.social_id),
+    content: post.content,
+    date: post.date,
+  }));
 
 // builds a query to insert data into the PostCategory table
 const buildPostCategoryQuery = (category, post) => {
@@ -186,7 +320,6 @@ const buildCategoryDetailQuery = (id, name, detail) =>
   // builds a query to insert data into the PostComment table
 const buildPostCommentQuery = (comment, post) => {
   comment.tags  !== undefined && comment.tags.forEach(tag => addCommentTagQuery(tag, comment));
-
   comment.likes !== undefined && comment.likes.forEach(like => addCommentLikeQuery(like, comment));
 
   let cleanedComment = stripUndefinedProperties({
