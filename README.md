@@ -1,6 +1,6 @@
 # tmdp.js - Targeting Marketing Data Parser
 
-A real JavaScript program written to parse and insert JSON data from a fake social media platform into a fake targeted marketing database.
+A (real) JavaScript program written to parse and insert JSON data from a (fake) social media platform into a (fake) targeted marketing database.
 
 ## How To Run
 
@@ -29,3 +29,7 @@ This script requires both `node` and `npm` installed to run.
 - Should `Gender.gender` just be a unique `VARCHAR` used as the PK to allow for user-specified gender?
 
 **All new tables have to be recreated using the `targeted_marketing` database rather than `mydb`.**
+
+## Todo
+
+- Escape single quotes in JSON content/date/string values
