@@ -5,7 +5,8 @@ import PromptSync from "prompt-sync";
 const prompt = PromptSync();
 
 const postDataPath = "./post_data.json";
-const dbName = "targeting_marketing";
+// const dbName = "targeting_marketing";
+const dbName = "tmdb";
 
 // This is hacky to account for problems in our schema. We'll want to return to this.
 const ids = {
