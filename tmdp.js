@@ -212,8 +212,21 @@ const parsePosts = (postData) => {
     postData.posts.forEach(post => {
       addPostQuery(post);
 
-      post.categories.forEach(category => addPostCategoryQuery(category, post));
-      post.comments.forEach(comment => addPostCommentQuery(comment, post));
+      post.categories.forEach(category => {
+        addPostCategoryQuery(category, post);
+        if (category.detail_description !== undefined) {
+          addCategoryDetailQuery(ids.category_detail_id, category.name, category.detail_description);
+          ids.category_detail_id++;
+        }
+      });
+
+      post.comments.forEach(comment => {
+        addPostCommentQuery(comment, post);
+
+        comment.tags  !== undefined && comment.tags.forEach(tag => addCommentTagQuery(tag, comment));
+        comment.likes !== undefined && comment.likes.forEach(like => addCommentLikeQuery(like, comment));
+      });
+      
       post.likes.forEach(like => addPostLikeQuery(like, post));
       post.tags.forEach(tag => addPostTagQuery(tag, post));
     });
@@ -271,7 +284,10 @@ const parsePostsAsHtml = (postData) => {
 
 // functions to add built queries to the queries array
 const addPostQuery = (post) => queries.push(buildPostQuery(post));
-const addPostCategoryQuery = (category, post) => queries.push(buildPostCategoryQuery(category, post));
+const addPostCategoryQuery = (category, post) => {
+  let query = buildPostCategoryQuery(category, post);
+  !queries.includes(query) && queries.push(query);
+};
 const addPostCommentQuery = (comment, post) => queries.push(buildPostCommentQuery(comment, post));
 const addPostLikeQuery = (like, post) => queries.push(buildPostLikeQuery(like, post));
 const addPostTagQuery = (tag, post) => queries.push(buildPostTagQuery(tag, post));
@@ -289,22 +305,22 @@ const buildPostQuery = (post) =>
   buildInsertQuery("Post", stripUndefinedProperties({
     id: parseInt(post.id),
     social_id: parseInt(post.social_id),
-    content: post.content,
-    date: post.date,
+    content: escapeSingleQuotes(post.content),
+    date: convertDateString(post.date),
   }));
 
 // builds a query to insert data into the PostCategory table
 const buildPostCategoryQuery = (category, post) => {
   // yeah, this is hacky garbage.
-  if (category.detail_description !== undefined) {
-    addCategoryDetailQuery(ids.category_detail_id, category.name, category.detail_description);
-    ids.category_detail_id++;
-  }
+  // if (category.detail_description !== undefined) {
+  //   addCategoryDetailQuery(ids.category_detail_id, category.name, category.detail_description);
+  //   ids.category_detail_id++;
+  // }
 
   let cleanedPostCategory = stripUndefinedProperties({
-    id: parseInt(category.id),
-    category_name: category.name,
-    post_id: post.id,
+    // id: parseInt(category.id),
+    category_name: escapeSingleQuotes(category.name),
+    // post_id: post.id,
   });
 
   return buildInsertQuery("PostCategory", cleanedPostCategory);
@@ -314,19 +330,16 @@ const buildPostCategoryQuery = (category, post) => {
 const buildCategoryDetailQuery = (id, name, detail) =>
   buildInsertQuery("CategoryDetail", stripUndefinedProperties({
     id: parseInt(id),
-    category_name: name,
-    category_detail_description: detail,
+    post_category_name: escapeSingleQuotes(name),
+    detail_description: escapeSingleQuotes(detail),
   }));
 
   // builds a query to insert data into the PostComment table
 const buildPostCommentQuery = (comment, post) => {
-  comment.tags  !== undefined && comment.tags.forEach(tag => addCommentTagQuery(tag, comment));
-  comment.likes !== undefined && comment.likes.forEach(like => addCommentLikeQuery(like, comment));
-
   let cleanedComment = stripUndefinedProperties({
     id: parseInt(comment.id),
-    content: comment.content,
-    date: comment.date,
+    content: escapeSingleQuotes(comment.content),
+    date: convertDateString(comment.date),
     post_id: parseInt(post.id),
     social_id: parseInt(comment.social_id),
   });
@@ -338,7 +351,7 @@ const buildPostCommentQuery = (comment, post) => {
 const buildPostLikeQuery = (like, post) => 
   buildInsertQuery("PostLike", stripUndefinedProperties({
     id: parseInt(like.id),
-    date: like.date,
+    date: convertDateString(like.date),
     post_id: parseInt(post.id),
     social_id: parseInt(like.social_id),
   }));
@@ -358,7 +371,7 @@ const buildCommentLikeQuery = (like, comment) =>
     id: parseInt(like.id),
     comment_id: parseInt(comment.id),
     social_id: parseInt(like.social_id),
-    date: like.date,
+    date: convertDateString(like.date),
   }));
 
 const buildCommentTagQuery = (tag, comment) =>
@@ -382,6 +395,14 @@ const stripUndefinedProperties = (object) => {
   Object.keys(object).forEach(key => object[key] === undefined && delete object[key]);
   return object;
 };
+
+// converts a date string from "MM/DD/YYYY" to "YYYY-MM-DD"
+const convertDateString = (dateString) => {
+  let dateComponents = dateString.split("/");
+  return `${dateComponents[2]}-${dateComponents[0]}-${dateComponents[1]}`;
+}
+
+const escapeSingleQuotes = (dataString) => dataString.replaceAll("'", "''");
 
 // gets the field names as a comma-separated string for all of the data present in an object
 const getFields  = (object) => Object.keys(object).join(", ");

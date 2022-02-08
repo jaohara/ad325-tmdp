@@ -28,7 +28,9 @@ The basic functionality of the program will write out the generated SQL queries 
 
 ### Schema Update Notes
 
+- `Group`, `Event`, and all derived tables needed to be renamed to `SocialGroup` and `SocialEvent` to avoid conflicts with MySQL keywords.
 - Should `Post`, `Comment`, etc, have a `datetime` field rather than `date`?
+- 
 
 **All new tables have to be recreated using the `targeted_marketing` database rather than `mydb`.**
 
