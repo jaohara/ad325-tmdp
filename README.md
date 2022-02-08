@@ -2,9 +2,18 @@
 
 A (real) JavaScript program written to parse and insert JSON data from a (fake) social media platform into a (fake) targeted marketing database.
 
-## Screenshot
+## Screenshots
 
-![Workflow Screenshot](tmdp-screenshot.png "An example of the program workflow and created data in the database.")
+### Workflow
+
+![Workflow Screenshot](screenshots/tmdp-screenshot.png "An example of the program workflow and created data in the database.")
+
+### HTML Output
+
+The Script will also parse the `.json` into a human-readable `.html` document:
+
+![HTML Screenshot](screenshots/html_output.png "An example of the HTML output")
+
 
 ## How To Run
 
