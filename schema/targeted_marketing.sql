@@ -138,7 +138,7 @@ CREATE TABLE UserViewpoint (
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT userviewpoint_social_issue_id_fk FOREIGN KEY (social_issue_id)
-    REFERENCES User (id)
+    REFERENCES SocialIssue (id)
     ON DELETE CASCADE
     ON UPDATE CASCADE
 );

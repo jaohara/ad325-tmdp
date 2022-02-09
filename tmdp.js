@@ -1,12 +1,12 @@
 import chalk from "chalk";
 import fs from "fs";
+import mysql from 'mysql2/promise';
 import PromptSync from "prompt-sync";
 
 const prompt = PromptSync();
 
-const postDataPath = "./post_data.json";
-// const dbName = "targeting_marketing";
-const dbName = "tmdb";
+const postDataPath  = "./post_data.json";
+const dbCredentials = JSON.parse(fs.readFileSync("./credentials.json"));
 
 // This is hacky to account for problems in our schema. We'll want to return to this.
 const ids = {
@@ -17,22 +17,21 @@ const ids = {
 const htmlLines = [];
 const queries   = [];
 
-// TODO: Use MySQL2 to connect to a local database to avoid the extra step of 
-//  needing to output to a SQL script.
+
 
 // main program logic
-function main() {
+async function main() {
   console.log(boldBlue("\ntmdp.js - Targeted Marketing Data Parser"));
   console.log(chalk.bold(`Written by ${chalk.blue("John O'Hara")}\n`));
 
-  console.log(`Reading '${postDataPath}'.....`)
+  console.log(`Reading '${postDataPath}'.....`);
 
   if (fs.existsSync(postDataPath)) {
     const postData = JSON.parse(fs.readFileSync(postDataPath));
     logSuccess(`'${postDataPath}' read successfully.`);
     parsePosts(postData);
     parsePostsAsHtml(postData);
-    runMainLoop();
+    await runMainLoop();
   }
   else {
     logFailure(`ERROR reading '${postDataPath}' - does the file exist?`);
@@ -40,11 +39,20 @@ function main() {
 }
 
 // main prompt loop after data has been parsed
-const runMainLoop = () => {
+const runMainLoop = async () => {
   while(true) {
     let input = inputPrompt();
 
-    if (Object.keys(promptOptions).includes(input)) {
+
+    // this approach to single out the await call could be more elegant
+    if (input === "r") {
+      await runAllQueries();
+    }
+    // else if (input === "reset") {
+    //   console.log("Resetting database...");
+    //   await truncateTables();
+    // }
+    else if (Object.keys(promptOptions).includes(input)) {
       promptOptions[input]();
     }
     else if (input === "x" || input === null) {
@@ -57,16 +65,32 @@ const runMainLoop = () => {
   };
 };
 
+const queryDb = async (querySet) => {
+  const dbConnection = await mysql.createConnection({
+    database: dbCredentials.database,
+    host: dbCredentials.host,
+    password: dbCredentials.password,
+    user: dbCredentials.user,
+  });
+
+  querySet.forEach(async query => await dbConnection.query(query));
+
+  dbConnection.end();
+};
+
 
 //  ------------------------
 //  Prompt-Related Functions
 //  ------------------------
 
-// f - output formatted html
-// h - help
-// s - output sql script to file
-// v - view parsed queries 
-// x - exit
+/*
+      f - output formatted html
+      h - help
+      r - run all stored queries
+      s - output sql script to file
+      v - view parsed queries 
+      x - exit
+*/
 
 const inputPrompt = () => {
   let promptResponse = prompt(printPromptString());
@@ -75,7 +99,7 @@ const inputPrompt = () => {
 
 // prints the formatted prompt string
 const printPromptString = () => 
-  `${boldBlue("(V)")}iew Queries, Output ${boldBlue("(S)")}QL script, \
+  `${boldBlue("(V)")}iew Queries, ${boldBlue("(R)")}un Queries, Output ${boldBlue("(S)")}QL script, \
 Output ${boldBlue("(F)")}ormatted HTML, ${boldBlue("(H)")}elp, E${boldBlue("(x)")}it: `;
 
 const printFileOverwritePromptString = (fileName) => 
@@ -133,6 +157,9 @@ const printHelpMessage = () => {
     ${boldBlue("v - V")}iew Queries
       Outputs all of the generated queries to the screen.
 
+    ${boldBlue("r - R")}un Queries
+      Runs all of the generated queries on the connected database.
+
     ${boldBlue("s - ")}Output ${boldBlue("S")}QL script
       Outputs the generated SQL queries to a file.
 
@@ -145,6 +172,53 @@ const printHelpMessage = () => {
     ${boldBlue("x - ")}E${boldBlue("x")}it
       Exits the program.\n`);
 }
+
+const runAllQueries = async () => {
+  console.log(`Running ${boldBlue(queries.length)} queries....`);
+
+  await queryDb(queries);
+
+  logSuccess("Finished running queries.");
+}
+
+// shorthand to empty all data from the tables
+// const truncateTables = async () => {
+//   // There's a better, more reusable way to do this, but I need a quick shorthand.
+//   await queryDb([
+//     "SET FOREIGN_KEY_CHECKS=0;",
+//     "TRUNCATE `CategoryDetail`;",
+//     "TRUNCATE `Gender`;",
+//     "TRUNCATE `Platform`;",
+//     "TRUNCATE `PoliticalView`;",
+//     "TRUNCATE `Post`;",
+//     "TRUNCATE `PostCategory`;",
+//     "TRUNCATE `PostComment`;",
+//     "TRUNCATE `PostCommentLike`;",
+//     "TRUNCATE `PostCommentTag`;",
+//     "TRUNCATE `PostLike`;",
+//     "TRUNCATE `PostTag`;",
+//     "TRUNCATE `Religion`;",
+//     "TRUNCATE `SocialAccount`;",
+//     "TRUNCATE `SocialEvent`;",
+//     "TRUNCATE `SocialEventCategory`;",
+//     "TRUNCATE `SocialEventMember`;",
+//     "TRUNCATE `SocialGroup`;",
+//     "TRUNCATE `SocialGroupCategory`;",
+//     "TRUNCATE `SocialGroupMember`;",
+//     "TRUNCATE `SocialIssue`;",
+//     "TRUNCATE `User`;",
+//     "TRUNCATE `UserEmail`;",
+//     "TRUNCATE `UserFriend`;",
+//     "TRUNCATE `UserGender`;",
+//     "TRUNCATE `UserLocation`;",
+//     "TRUNCATE `UserPhone`;",
+//     "TRUNCATE `UserSocialMatePreference`;",
+//     "TRUNCATE `UserViewpoint`;",
+//     "SET FOREIGN_KEY_CHECKS=1;",
+//   ]);
+
+//   logSuccess("Finished truncating tables.");
+// }
 
 // Ouputs parsed created SQL statements to a script - corresponds to "s"
 const outputSqlScript = () => {
@@ -170,7 +244,7 @@ const outputSqlScript = () => {
 
     if (fileNameIsSafe) {
       // write the file
-      const outputQueries = [`USE ${dbName};`, ...queries, ""];
+      const outputQueries = [`USE ${dbCredentials.database};`, ...queries, ""];
       fs.writeFileSync(fileName, outputQueries.join("\n"));
       logSuccess(`Successfully written SQL queries to '${fileName}'!\n`);
       return;
@@ -195,7 +269,8 @@ const logAllQueries = () => {
 
 const promptOptions = {
   f: outputFormattedHtml, 
-  h: printHelpMessage, 
+  h: printHelpMessage,
+  r: runAllQueries, 
   s: outputSqlScript,
   v: logAllQueries, 
 };
@@ -310,21 +385,11 @@ const buildPostQuery = (post) =>
   }));
 
 // builds a query to insert data into the PostCategory table
-const buildPostCategoryQuery = (category, post) => {
-  // yeah, this is hacky garbage.
-  // if (category.detail_description !== undefined) {
-  //   addCategoryDetailQuery(ids.category_detail_id, category.name, category.detail_description);
-  //   ids.category_detail_id++;
-  // }
-
-  let cleanedPostCategory = stripUndefinedProperties({
-    // id: parseInt(category.id),
+const buildPostCategoryQuery = (category, post) => 
+  // TODO: remember: his will still need to take in a post_id to refer back to the PostCategory
+  buildInsertQuery("PostCategory", stripUndefinedProperties({
     category_name: escapeSingleQuotes(category.name),
-    // post_id: post.id,
-  });
-
-  return buildInsertQuery("PostCategory", cleanedPostCategory);
-};
+  }));
 
 // builds a query to insert data into the CategoryDetail table
 const buildCategoryDetailQuery = (id, name, detail) =>
@@ -383,7 +448,7 @@ const buildCommentTagQuery = (tag, comment) =>
   }));
 
 const buildInsertQuery = (table, data) => 
-  `INSERT INTO ${table} (${getFields(data)})\n    VALUES(${getValues(data)});`;
+  `INSERT IGNORE INTO ${table} (${getFields(data)})\n    VALUES(${getValues(data)});`;
 
 
 //  ----------------------
