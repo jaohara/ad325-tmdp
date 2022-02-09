@@ -1,0 +1,7 @@
+loops: http://nicoleanddebbie.com/classes/nsc/350_class/lectures/350_class4/img7.html
+
+variable declaration: http://nicoleanddebbie.com/classes/nsc/350_class/lectures/350_class4/img8.html
+
+if statement: http://nicoleanddebbie.com/classes/nsc/350_class/lectures/350_class4/img10.html
+
+maybe best to use a trigger procedure that initiates after new data is inserted?
