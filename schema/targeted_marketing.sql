@@ -445,6 +445,17 @@ CREATE TABLE CategoryDetail (
     ON UPDATE CASCADE
 );
 
+-- transaction table
+
+-- CREATE TABLE Transactions (
+--   id INT UNSIGNED NOT NULL,
+--   date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  
+--   PRIMARY KEY (id),
+  
+  
+--   );
+
 
 -- Create some Basic users
 
