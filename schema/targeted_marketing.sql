@@ -444,6 +444,23 @@ CREATE TABLE CategoryDetail (
     ON DELETE CASCADE
     ON UPDATE CASCADE
 );
+-- transaction table - when any queries in the script that include a user action (post, like, etc.)run, the script uses transaction table to create a 
+-- transaction with full text of query and related user with the DateTime auto-populated
+
+-- CREATE TABLE Transaction (
+--   id INT UNSIGNED NOT NULL,
+--   date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+--   query TEXT() NOT NULL,
+--   user_id INT UNSIGNED,
+  
+--   PRIMARY KEY (id),
+
+-- CONSTRAINT transaction_user_id FOREIGN KEY (user_id)
+     REFERENCES User(id)
+     ON DELETE NO ACTION
+     ON UPDATE NO ACTION
+  
+--   );
 
 
 -- Create some Basic users
