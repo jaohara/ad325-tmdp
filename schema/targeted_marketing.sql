@@ -1,6 +1,6 @@
 /*
   Targeted Marketing Database Schema
-  Version 2/5/2022
+  Version 2/15/2022
 */
 DROP SCHEMA IF EXISTS tmdb;
 CREATE SCHEMA tmdb;
@@ -211,6 +211,29 @@ CREATE TABLE SocialAccount (
 );
 
 
+-- Category-related Tables
+CREATE TABLE Category (
+  name                          VARCHAR(128) NOT NULL,
+
+  PRIMARY KEY (name)
+);
+
+-- maybe reconsider how we're using ids here? Also might not be an issue
+CREATE TABLE CategoryDetail (
+  -- potentially AUTO INCREMENT
+  id                            INT UNSIGNED NOT NULL,
+  category_name                 VARCHAR(128),
+  detail_description            VARCHAR(128) NOT NULL,
+
+  PRIMARY KEY (id),
+
+  CONSTRAINT categorydetail_category_name FOREIGN KEY (category_name)
+    REFERENCES Category (name)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+);
+
+
 -- Post-related Tables
 
 CREATE TABLE Post (
@@ -230,9 +253,19 @@ CREATE TABLE Post (
 );
 
 CREATE TABLE PostCategory (
+  post_id                       INT UNSIGNED NOT NULL,
   category_name                 VARCHAR(128) NOT NULL,
 
-  PRIMARY KEY (category_name)
+  PRIMARY KEY (post_id, category_name),
+
+  CONSTRAINT postcategory_post_id FOREIGN KEY (post_id)
+    REFERENCES Post (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT postcategory_category_name FOREIGN KEY (category_name)
+    REFERENCES Category (name)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
 );
 
 CREATE TABLE PostComment (
@@ -374,9 +407,19 @@ CREATE TABLE SocialGroupMember (
 );
 
 CREATE TABLE SocialGroupCategory (
+  social_group_id               INT UNSIGNED NOT NULL,
   category_name                 VARCHAR(128) NOT NULL,
 
-  PRIMARY KEY (category_name)
+  PRIMARY KEY (social_group_id, category_name),
+
+  CONSTRAINT socialgroupcategory_social_group_id FOREIGN KEY (social_group_id)
+    REFERENCES SocialGroup (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT socialgroupcategory_category_name FOREIGN KEY (category_name)
+    REFERENCES Category (name)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
 );
 
 -- Event-related Tables
@@ -412,55 +455,63 @@ CREATE TABLE SocialEventMember (
 );
 
 CREATE TABLE SocialEventCategory (
+  social_event_id               INT UNSIGNED NOT NULL,
   category_name                 VARCHAR(128) NOT NULL,
 
-  PRIMARY KEY (category_name)
-);
+  PRIMARY KEY (social_event_id, category_name),
 
-
--- Category-related Tables
-
--- maybe reconsider how we're using ids here? Also might not be an issue
-CREATE TABLE CategoryDetail (
-  -- potentially AUTO INCREMENT
-  id                            INT UNSIGNED NOT NULL,
-  detail_description            VARCHAR(128) NOT NULL,
-  post_category_name            VARCHAR(128),
-  group_category_name           VARCHAR(128),
-  event_category_name           VARCHAR(128),
-
-  PRIMARY KEY (id),
-
-  CONSTRAINT categorydetail_post_category_name FOREIGN KEY (post_category_name)
-    REFERENCES PostCategory (category_name)
+  CONSTRAINT socialeventcategory_social_event_id FOREIGN KEY (social_event_id)
+    REFERENCES SocialEvent (id)
     ON DELETE CASCADE
-    ON UPDATE CASCADE,  
-  CONSTRAINT categorydetail_group_category_name FOREIGN KEY (group_category_name)
-    REFERENCES SocialGroupCategory (category_name)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,  
-  CONSTRAINT categorydetail_event_category_name FOREIGN KEY (event_category_name)
-    REFERENCES SocialEventCategory (category_name)
+    ON UPDATE CASCADE,
+  CONSTRAINT socialeventcategory_category_name FOREIGN KEY (category_name)
+    REFERENCES Category (name)
     ON DELETE CASCADE
     ON UPDATE CASCADE
 );
--- transaction table - when any queries in the script that include a user action (post, like, etc.)run, the script uses transaction table to create a 
--- transaction with full text of query and related user with the DateTime auto-populated
 
--- CREATE TABLE Transaction (
---   id INT UNSIGNED NOT NULL,
---   date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
---   query TEXT() NOT NULL,
---   user_id INT UNSIGNED,
-  
---   PRIMARY KEY (id),
 
--- CONSTRAINT transaction_user_id FOREIGN KEY (user_id)
-     REFERENCES User(id)
-     ON DELETE NO ACTION
-     ON UPDATE NO ACTION
+-- Transaction Table
+CREATE TABLE Transaction (
+  id                              INT UNSIGNED NOT NULL,
+  date                            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  query                           TEXT NOT NULL,
+
+  -- Potential tables to reference
+  category_name              VARCHAR(128),
+  post_id                         INT UNSIGNED,
+  post_comment_id                 INT UNSIGNED,
+  social_group_id                 INT UNSIGNED,
+  social_event_id                 INT UNSIGNED,
+  user_id                         INT UNSIGNED,
   
---   );
+  PRIMARY KEY (id),
+
+  CONSTRAINT transaction_user_id FOREIGN KEY (user_id)
+    REFERENCES User (id)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,  
+  CONSTRAINT transaction_category_name FOREIGN KEY (category_name)
+    REFERENCES Category (name)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,  
+  CONSTRAINT transaction_post_id FOREIGN KEY (post_id)
+    REFERENCES Post (id)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,  
+  CONSTRAINT transaction_post_comment_id FOREIGN KEY (post_comment_id)
+    REFERENCES PostComment (id)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,  
+  CONSTRAINT transaction_social_group_id FOREIGN KEY (social_group_id)
+    REFERENCES SocialGroup (id)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,  
+  CONSTRAINT transaction_social_event_id FOREIGN KEY (social_event_id)
+    REFERENCES SocialEvent (id)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+);
 
 
 -- Create some Basic users
